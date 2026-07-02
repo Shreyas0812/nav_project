@@ -39,5 +39,21 @@ Each command runs in its own sourced terminal.
 
 Saved map: `maps/turtlebot3_world.{pgm,yaml}`
 
+## Autonomous navigation (Nav2)
+With Gazebo still running and the robot spawned:
+
+1. Launch Nav2 against the saved map:
+```bash
+   ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+     use_sim_time:=true \
+     map:=/absolute/path/to/turtlebot3_world.yaml
+```
+2. In RViz, **2D Pose Estimate** to set robot's actual
+   location to set its starting pose and heading.
+
+3. In RViz, **Nav2 Goal** and click/drag a reachable destination. Nav2 plans a
+   global path and the local controller (DWB) drives the robot there while
+   avoiding obstacles.
+
 ## Scope / honesty note
 Simulation-only (Gazebo). Not yet validated on physical hardware.
