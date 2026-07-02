@@ -13,5 +13,31 @@ Ubuntu 22.04 · ROS2 Humble · Gazebo Classic 11 · TurtleBot3 Waffle
 source env.sh
 ```
 
+## Building a map (SLAM Toolbox)
+Each command runs in its own sourced terminal.
+
+1. Launch the simulated robot:
+```bash
+   ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+```
+2. Start SLAM Toolbox. `use_sim_time:=true` to use Gazebo's simulated clock
+```bash
+   ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true
+```
+3. Visualized in RViz (Fixed Frame = `map`, add `/map` and `/scan`):
+```bash
+   rviz2
+```
+4. Teleop to Drive, builds maps, revisiting areas to trigger loop closure:
+```bash
+   ros2 run turtlebot3_teleop teleop_keyboard
+```
+5. Save the map:
+```bash
+   ros2 run nav2_map_server map_saver_cli -f maps/turtlebot3_world
+```
+
+Saved map: `maps/turtlebot3_world.{pgm,yaml}`
+
 ## Scope / honesty note
-This is a simulation-only project (Gazebo). Not yet validated on physical hardware.
+Simulation-only (Gazebo). Not yet validated on physical hardware.
