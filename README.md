@@ -55,5 +55,17 @@ With Gazebo still running and the robot spawned:
    global path and the local controller (DWB) drives the robot there while
    avoiding obstacles.
 
-## Scope / honesty note
+## Sensor Fusion - EKF (in progress)
+Extended Kalman Filter (`robot_localization`) fuses wheel odometry (`/odom`)
+and IMU (`/imu`) into a single estimate published on `/odometry/filtered`.
+
+Config: `config/ekf.yaml`. Run:
+```bash
+ros2 run robot_localization ekf_node --ros-args --params-file config/ekf.yaml
+```
+
+**Known issue (not yet resolved):** the TurtleBot3 Gazebo diff-drive plugin
+also publishes `odom -> base_footprint`.
+
+## Scope 
 Simulation-only (Gazebo). Not yet validated on physical hardware.
