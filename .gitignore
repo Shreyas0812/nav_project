@@ -16,3 +16,7 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# view_frames output
+frames*.pdf
+frames*.gv
