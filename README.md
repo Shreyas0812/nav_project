@@ -64,8 +64,13 @@ Config: `config/ekf.yaml`. Run:
 ros2 run robot_localization ekf_node --ros-args --params-file config/ekf.yaml
 ```
 
-**Known issue (not yet resolved):** the TurtleBot3 Gazebo diff-drive plugin
-also publishes `odom -> base_footprint`.
+Wheel Odom: x/y and forward velocity 
+IMU:  yaw + angular velocity + linear acceleration (gravity removed)
+
+
+Node wiring (EKF subscribing to `/odom` and `/imu`, publishing to `/tf`):
+
+![Node graph](docs/rosgraph-ekf.png)
 
 ## Scope 
 Simulation-only (Gazebo). Not yet validated on physical hardware.
