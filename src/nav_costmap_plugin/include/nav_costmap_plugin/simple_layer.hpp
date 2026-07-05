@@ -29,7 +29,7 @@ public:
         int min_i, int min_j, int max_i, int max_j) override;
     
     // Lifecycle 
-    virtual void reset() override;
+    virtual void reset() override {}
     virtual bool isClearable() override { return false; }
 
 private:

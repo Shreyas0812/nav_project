@@ -1,76 +1,78 @@
 # nav_project
+Autonomous navigation stack on ROS2 Humble + Nav2 + SLAM Toolbox, simulated
+with TurtleBot3 (Waffle) in Gazebo Classic. Structured as a ROS2 workspace
+with two packages: `nav_bringup` (configs, launch, maps) and
+`nav_costmap_plugin` (a custom C++ Nav2 costmap layer).
 
-Autonomous navigation stack built on ROS2 Humble + Nav2 + SLAM Toolbox,
-simulated with TurtleBot3 (Waffle) in Gazebo Classic.
-
-**Status:** In Progress.
+**Status:** SLAM + Nav2 + EKF working. Custom costmap plugin working (hardcoded lethal region). Next: learned cost values.
 
 ## Environment
 Ubuntu 22.04 · ROS2 Humble · Gazebo Classic 11 · TurtleBot3 Waffle
 
-## Setup
+## Build & setup
 ```bash
-source env.sh
+source /opt/ros/humble/setup.bash
+colcon build
+source install/setup.bash
+export TURTLEBOT3_MODEL=waffle
 ```
 
 ## Building a map (SLAM Toolbox)
-Each command runs in its own sourced terminal.
-
-1. Launch the simulated robot:
+Each command in its own sourced terminal.
 ```bash
-   ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true
+rviz2   # Fixed Frame = map, add /map and /scan
+ros2 run turtlebot3_teleop teleop_keyboard   # drive, revisit areas for loop closure
+ros2 run nav2_map_server map_saver_cli -f src/nav_bringup/maps/turtlebot3_world
 ```
-2. Start SLAM Toolbox. `use_sim_time:=true` to use Gazebo's simulated clock
-```bash
-   ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true
-```
-3. Visualized in RViz (Fixed Frame = `map`, add `/map` and `/scan`):
-```bash
-   rviz2
-```
-4. Teleop to Drive, builds maps, revisiting areas to trigger loop closure:
-```bash
-   ros2 run turtlebot3_teleop teleop_keyboard
-```
-5. Save the map:
-```bash
-   ros2 run nav2_map_server map_saver_cli -f maps/turtlebot3_world
-```
-
-Saved map: `maps/turtlebot3_world.{pgm,yaml}`
 
 ## Autonomous navigation (Nav2)
-With Gazebo still running and the robot spawned:
-
-1. Launch Nav2 against the saved map:
+Map path must be absolute — Nav2's map server fails silently on relative paths.
 ```bash
-   ros2 launch turtlebot3_navigation2 navigation2.launch.py \
-     use_sim_time:=true \
-     map:=/absolute/path/to/turtlebot3_world.yaml
+ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+  use_sim_time:=true \
+  map:=$HOME/Documents/nav_project/src/nav_bringup/maps/turtlebot3_world.yaml
 ```
-2. In RViz, **2D Pose Estimate** to set robot's actual
-   location to set its starting pose and heading.
+In RViz: **2D Pose Estimate** to set the initial pose (Nav2 errors until this is
+set — AMCL can't publish map→odom without it), then **Nav2 Goal** to navigate.
 
-3. In RViz, **Nav2 Goal** and click/drag a reachable destination. Nav2 plans a
-   global path and the local controller (DWB) drives the robot there while
-   avoiding obstacles.
+## Sensor fusion — EKF (robot_localization)
+Fuses wheel odometry (`/odom`) and IMU (`/imu`) into `/odometry/filtered`.
+Config: `src/nav_bringup/config/ekf.yaml`.
+- Wheel odom: x/y and forward velocity
+- IMU: yaw + angular velocity + linear acceleration (gravity removed)
 
-## Sensor Fusion - EKF (in progress)
-Extended Kalman Filter (`robot_localization`) fuses wheel odometry (`/odom`)
-and IMU (`/imu`) into a single estimate published on `/odometry/filtered`.
+Validated by comparing `/odom` vs `/odometry/filtered` under teleop — tracks
+closely with minor differences (expected: sim odometry has negligible drift).
 
-Config: `config/ekf.yaml`. Run:
-```bash
-ros2 run robot_localization ekf_node --ros-args --params-file config/ekf.yaml
-```
-
-Wheel Odom: x/y and forward velocity 
-IMU:  yaw + angular velocity + linear acceleration (gravity removed)
-
-
-Node wiring (EKF subscribing to `/odom` and `/imu`, publishing to `/tf`):
+**Known limitation (sim only):** the Gazebo diff-drive plugin and the EKF both
+publish `odom→base_footprint`. The fused estimate is validated numerically but
+doesn't own the TF in sim. On hardware the wheel driver cedes the transform to
+the EKF.
 
 ![Node graph](docs/rosgraph-ekf.png)
 
-## Scope 
-Simulation-only (Gazebo). Not yet validated on physical hardware.
+## Custom costmap plugin (`nav_costmap_plugin`)
+A C++ Nav2 costmap layer (`nav_costmap_plugin::SimpleLayer`) that stamps a
+**hardcoded** lethal-cost rectangle into the global costmap. Loads via
+pluginlib; the global planner routes around the region.
+
+Add to a costmap's plugin list and run:
+```yaml
+plugins: [..., "simple_layer"]
+simple_layer:
+  plugin: "nav_costmap_plugin::SimpleLayer"
+```
+```bash
+ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+  use_sim_time:=true \
+  map:=$HOME/Documents/nav_project/src/nav_bringup/maps/turtlebot3_world.yaml \
+  params_file:=$HOME/Documents/nav_project/src/nav_bringup/config/nav2_params_clean.yaml
+```
+
+**Stage 1 (done):** hardcoded lethal region, planner routes around it.
+**Stage 2 (next):** derive cost from a learned traversability model.
+
+## Scope
+Simulation-only (Gazebo). Not validated on physical hardware.
