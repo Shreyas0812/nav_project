@@ -1,0 +1,5 @@
+<library path="nav_costmap_plugin">
+  <class type="nav_costmap_plugin::SimpleLayer" base_class_type="nav2_costmap_2d::Layer">
+    <description>A simple costmap layer that stamps a fixed lethal rectangle.</description>
+  </class>
+</library>

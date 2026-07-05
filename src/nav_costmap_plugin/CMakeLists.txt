@@ -11,6 +11,42 @@ find_package(rclcpp REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(pluginlib REQUIRED)
 
+# Build plugin as a Shared Library -- compile the source files into a shared library that can be loaded at runtime by the navigation stack.
+add_library(${PROJECT_NAME} SHARED
+  src/simple_layer.cpp
+)
+
+# Headers
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+# Link against ROS dependencies -- links libraries against the ROS dependencies
+ament_target_dependencies(${PROJECT_NAME} 
+  rclcpp
+  nav2_costmap_2d
+  pluginlib
+)
+
+# Register this plugin with pluginlib -- tells pluginlib about the plugin and its class name, so that it can be loaded at runtime by the navigation stack.
+pluginlib_export_plugin_description_file(nav2_costmap_2d simple_layer.xml) 
+
+# Install the library and header files
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+# Export so other packages/pluginlib can find this package
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
